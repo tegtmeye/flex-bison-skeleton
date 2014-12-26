@@ -43,21 +43,13 @@ typedef void* yyscan_t;
 
 namespace detail {
 
-//  struct lex_sentry {
-//    lex_sentry(yyscan_t s) :scanner(s) {}
-//    ~lex_sentry(void) {
-//      dsv_parser_lex_destroy(scanner);
-//    }
-//
-//    yyscan_t scanner;
-//  };
 
 }
 
 
 extern "C" {
 
-  int obj_parser_create(dsv_parser_t *parser)
+  int dsv_parser_create(dsv_parser_t *parser)
   {
     int err = 0;
 
@@ -85,20 +77,84 @@ extern "C" {
     }
   }
 
-  int dsv_parse(const char *filename, dsv_parser_t parser,
-                dsv_contents_t *contents)
+
+
+  int dsv_operations_create(dsv_operations_t *operations)
   {
-    detail::dsv_parser *p = static_cast<detail::dsv_parser*>(parser.p);
+    int err = 0;
+
+    try {
+      operations->p = new detail::parse_operations;
+    }
+    catch (std::bad_alloc &) {
+      err = ENOMEM;
+    }
+    catch (...) {
+      abort();
+    }
+
+    return err;
+  }
+
+  void dsv_operations_destroy(dsv_operations_t operations)
+  {
+    try {
+      delete static_cast<detail::parse_operations*>(operations.p);
+      operations.p = 0;
+    }
+    catch(...) {
+      abort();
+    }
+  }
+
+  int dsv_set_record_callback(record_callback_t fn, void *context,
+    dsv_operations_t _operations)
+  {
+    if(_operations.p == 0)
+      return EINVAL;
+
+    detail::parse_operations &operations =
+      *static_cast<detail::parse_operations*>(_operations.p);
 
     int err = 0;
 
     try {
+      operations.record_callback = fn;
+      operations.record_context = context;
+    }
+    catch(...) {
+      abort();
+    }
 
-      // make sure the contents get destroyed if there is an exception
-//      std::auto_ptr<detail::dsv_contents> sentry(new detail::dsv_contents);
+    return err;
+  }
 
-      err = p->parse_file(filename);
 
+
+
+
+
+
+
+
+
+
+
+
+
+  int dsv_parse(const char *filename, dsv_parser_t _parser,
+                dsv_operations_t _operations)
+  {
+    if(_parser.p == 0 || _operations.p == 0)
+      return EINVAL;
+
+    detail::dsv_parser &parser = *static_cast<detail::dsv_parser*>(_parser.p);
+    detail::parse_operations &operations = *static_cast<detail::parse_operations*>(_operations.p);
+
+    int err = 0;
+
+    try {
+      err = parser.parse_file(filename,operations);
     }
     catch(std::bad_alloc &) {
       err = ENOMEM;
@@ -110,7 +166,7 @@ extern "C" {
     catch(...) {
       abort();
     }
-    
+
     return err;
   }
 

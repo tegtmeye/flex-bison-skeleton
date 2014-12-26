@@ -1,0 +1,9 @@
+if SINGLE_TESTSUITE
+MAYBE_TEST=
+else
+MAYBE_TEST=tests
+endif
+
+SUBDIRS= \
+	src \
+	$(MAYBE_TEST)

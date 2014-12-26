@@ -30,6 +30,8 @@ AC_PROG_LN_S
 
 # We need boost
 BOOST_REQUIRE([1.43])
+BOOST_TEST
+BOOST_SYSTEM
 
 # Checks for libraries.
 
@@ -43,7 +45,26 @@ AC_CHECK_HEADER([unistd.h],[],
 AC_CHECK_FUNC([read],[],
         [AC_DEFINE([NO_POSIX_READ],[1],[Don't use read function])])
 
+
+# Check for single testsuite
+AC_ARG_WITH([single-testsuite],
+[AS_HELP_STRING([--with-single-testsuite],
+        [single testsuite with XML output @<:@default=no@:>@])],
+[case "${withval}" in
+  yes) ;;
+  no) ;;
+  *) AC_MSG_ERROR([bad value ${withval} for --with-single-testsuite]) ;; 
+esac],[with_single_testsuite=no]) 
+AM_CONDITIONAL([SINGLE_TESTSUITE], [test "x$with_single_testsuite" == xyes]) 
+
+
+
 AC_CONFIG_FILES( \
- Makefile)
+ libdsv.pc \
+ Makefile \
+ libdsv/Makefile \
+ libdsv/src/Makefile \
+ libdsv/tests/Makefile \
+ tests/Makefile)
 
 AC_OUTPUT

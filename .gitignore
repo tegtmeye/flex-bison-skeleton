@@ -36,7 +36,7 @@ diffs
 tests/*[^\.cc\|\.h|\.sh|\.in|\.out]
 *_test
 *_test[0-9]*
-
+*.trs
 
 dsv_grammar.cc
 dsv_grammar.hh

@@ -1,0 +1,15 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libdsv
+Description:  Library to parse delimited seperated value files
+URL: https://github.com/tegtmeye/libdsv
+Version: @PACKAGE_VERSION@
+Requires: 
+Requires.private:
+Conflicts:
+Cflags: -I${includedir}
+Libs: -L${libdir} 
+Libs.private:

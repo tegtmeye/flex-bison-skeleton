@@ -31,46 +31,113 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef LIBDSV_PARSER_H
 #define LIBDSV_PARSER_H
 
+#include <unistd.h>
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
   /**
-   *  A structure containing a dsv parser
+   * \file dsv_parser.h
+   * \brief The main header file for the Delimited Seperated Values library
+   *
+   *
+   */
+
+  /**
+   *  \brief A structure containing a dsv parser
    */
   typedef struct {
     void *p;
   } dsv_parser_t;
 
   /**
-   *  A structure for extra things. Replace with something usefull
-   */
-  typedef struct {
-    void *p;
-  } dsv_contents_t;
-
-
-
-  /**
-   *  Allocate a dsv_parser_t object.
+   *  \brief Initialize a dsv_parser_t object.
    *
-   *  You must eventually call dsv_parser_destroy.
+   *  \note You must eventually call dsv_parser_destroy.
    *
-   *  Return values:
-   *  0 - success
-   *  ENOMEM - out of memory
+   *  \retval 0 success
+   *  \retval ENOMEM Could not allocate memory
    */
   int dsv_parser_create(dsv_parser_t *parser);
 
   /**
-   *  Destroy the obj_parser_t object.
+   *  \brief Destroy the obj_parser_t object.
+   *
+   *  \note
+   *  Use of any other function except \c dsv_parser_create with \c parser is
+   *  undefined.
    */
   void dsv_parser_destroy(dsv_parser_t parser);
 
+
+
   /**
-   *  Parse the file 'filename' with 'parser', create and place results into
-   *  'contents'.
+   *  A structure containing the dsv callbacks
+   */
+  typedef struct {
+    void *p;
+  } dsv_operations_t;
+
+  /**
+   *  \brief Initialize a dsv_operations_t object.
+   *
+   *  \note You must eventually call dsv_parser_destroy.
+   *
+   *  \retval 0 success
+   *  \retval ENOMEM Could not allocate memory
+   */
+  int dsv_operations_create(dsv_operations_t *operations);
+
+  /**
+   *  \brief Destroy the dsv_operations_t object.
+   *
+   *  \note
+   *  Use of any other function except \c dsv_operations_create with 
+   *  \c operations is undefined.
+   */
+  void dsv_operations_destroy(dsv_operations_t operations);
+
+  /**
+   *  Callback operatons type definitions
+   */
+
+  /**
+   *  \brief This function will be called for each record parsed in the file. See
+   *  the documentation for the definition of a record.
+   *
+   *  \param[in] fields \parblock 
+   *  A c-array of null-terminated byte strings containing each parsed field. If
+   *  the field was surrounded by quotes, the string does not inlcude this. No
+   *  attempt is made at understanding the content of the string. For example, if
+   *  the string contains a number, no attempt is made at determining if the
+   *  number will not overflow. Additionally, if quoted properly (see format
+   *  documentation), certain non-printing characters may appear in the field
+   *  such as newlines. In all cases however, since delimited seperated values
+   *  are strictly an ASCII format, no binary shall appear in the field.
+   *  \endparblock
+   *  \param[in] size The size of the field array
+   *  \param[in] context A user-defined value associted with this callback set in ???
+   *
+   *  \retval nonzero if procssing should continue or 0 if processing should cease
+   *          and control should return from the parse function.
+   */
+  typedef int (*record_callback_t)(const char *fields[], size_t size, void *context);
+
+  /**
+   *  \brief Associate the callback \c fn and a user-specified value \c context
+   *  with \c operation.
+   *
+   *  \note The value of \c context is passed in as the \c context parameter in \c fn
+   *
+   *  \retval 0 on success
+   *  \retval EINVAL \c operations has not been initialized
+   */
+  int dsv_set_record_callback(record_callback_t fn, void *context, dsv_operations_t operations);
+
+  /**
+   *  \brief Parse the file \c filename with \c parser, using the operations
+   *  contained in \c operations
    *
    *  If the filename begins with the '/' character, then the file is
    *  understood to be an absolute path starting at the root directory. If the
@@ -79,23 +146,20 @@ extern "C" {
    *  relative file inclusion mechanism will be relative to the directory that
    *  holds the input file.
    *
-   *  After a successful call to dsv_parse, you must eventually
-   *  call dsv_contents_destroy.
-   *
    *  If unable to successfully parse 'filename' a negative value will be
-   *  returned and the reason can be obtained by dsv_parse_error.
+   *  returned and the reason can be obtained by \c dsv_parse_error.
    *
    *  Warnings or information about non-implemented features will return success
-   *  and be reported via dsv_parse_error.
+   *  and be reported via \c dsv_parse_error.
    *
-   *  Return values:
-   *  0 - success
-   *  ENOMEM - out of memory
-   *  Any error code returned by fopen
-   *  <0 - failure, see dsv_parse_error
+   *  \retval 0 success
+   *  \retval ENOMEM out of memory
+   *  \retval EINVAL \c parser or \c operations have not been initialized
+   *  \retval >0 Any error code returned by fopen
+   *  \retval <0 failure, see dsv_parse_error
    */
   int dsv_parse(const char *filename, dsv_parser_t parser,
-                dsv_contents_t *contents);
+                dsv_operations_t operations);
 
 
 #if defined(__cplusplus)

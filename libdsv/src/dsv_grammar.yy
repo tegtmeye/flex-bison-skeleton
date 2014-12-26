@@ -1,20 +1,15 @@
 %code requires {
+  /*
+    Forward declarations for forward declarations of bison types
+  */
   typedef void* yyscan_t;
 
-  namespace detail {
-    template<typename CharT>
-    class basic_dsv_parser;
+  #include "parser_state.h"
 
-    typedef basic_dsv_parser<char> dsv_parser;
-
-  }
 }
 
 
 %code {
-  #include "parser_state.h"
-  #include "dsv_rules.h"
-
   /*
   This is needed because the flex-bison bridge is broke as of this writing.
   That is, the generated rules.h file requires YYSTYPE to be defined and
@@ -25,15 +20,17 @@
   #include "dsv_grammar.hh"
   #include "dsv_rules.h"
 
-  #include "parser_state.h"
+  #include "parser_state_detail.h"
 
 
-  void dsv_parser_error(yyscan_t scanner, detail::dsv_parser* parser, const char *s);
+  void dsv_parser_error(yyscan_t scanner, detail::dsv_parser &parser,
+    const detail::parse_operations &operations, const char *s);
 
   /**
    *  Error reporting function as required by yacc
    */
-  void dsv_parser_error(yyscan_t scanner, detail::dsv_parser* parser, const char *s)
+  void dsv_parser_error(yyscan_t scanner, detail::dsv_parser &parser,
+    const detail::parse_operations &operations, const char *s)
   {
 //    detail::verbose_output_formatter(detail::get_state(scanner),s);
   }
@@ -63,7 +60,8 @@
 
 %lex-param {yyscan_t scanner}
 %parse-param {yyscan_t scanner}
-%parse-param {detail::dsv_parser* parser}
+%parse-param {detail::dsv_parser &parser}
+%parse-param {const detail::parse_operations &operations}
 
 
 %%
