@@ -28,48 +28,65 @@
  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-%{
-  #ifdef HAVE_CONFIG_H
-  #include <config.h>
-  #endif
+/**
+ *  \file This file is used to provide convenience functions across test cases
+ */
 
-  #include "parser_state.h"
-
-  #include <sys/types.h>
-
-  #include "dsv_grammar.hh"
-
-  #include <stdlib.h>
-  #include <limits.h>
-
-  #if NO_POSIX_READ
-  #define YY_INPUT(buf,result,max_size) \
-    errno=0; \
-    while ( (result = fread(buf, 1, max_size, yyin))==0 && ferror(yyin)) { \
-      if( errno != EINTR) { \
-        YY_FATAL_ERROR( "input in flex scanner failed" ); \
-        break; \
-      } \
-      errno=0; \
-      clearerr(yyin); \
-    }
-  #endif
-
-%}
-
-/* Options section */
-%option full never-interactive
-%option warn nodefault noyywrap nounput
-%option reentrant bison-bridge
-
-/* State Definitions Section */
+#ifndef LIBDSV_TEST_TEST_DETAIL_H
+#define LIBDSV_TEST_TEST_DETAIL_H
 
 
-/* Definitions Section */
+#ifndef TESTDATA_DIR
+#error TESTDATA_DIR not defined
+#endif
+
+#define _QUOTEME(x) #x
+#define QUOTEME(x) _QUOTEME(x)
 
 
 
-%%
+#include "parser_state.h"
 
-.                   { return yytext[0]; }
-%%
+namespace dsv {
+namespace test {
+
+namespace b = boost;
+namespace fs = boost::filesystem;
+
+
+namespace detail {
+
+
+static const fs::path testdatadir(QUOTEME(TESTDATA_DIR));
+
+
+struct record_context {
+  std::vector<std::string> fields;
+  bool should_continue;
+};
+
+static int record_callback(const char *fields[], size_t size, void *context)
+{
+  record_context &check_context = *static_cast<record_context*>(context);
+
+  BOOST_REQUIRE_MESSAGE(size == check_context.fields.size(),
+    "record_callback has incorrect number of fields. Should be "
+    << check_context.fields.size() << " received " << size);
+
+  for(std::size_t i=0; i<size; ++i) {
+    BOOST_REQUIRE_MESSAGE(check_context.fields[i] == fields[i],
+      "record_callback saw incorrect field. Should be '"
+      << check_context.fields[i] << "' received '" << fields[i] << "'");
+  }
+
+  return check_context.should_continue;
+}
+
+
+}
+
+
+}
+}
+
+#endif

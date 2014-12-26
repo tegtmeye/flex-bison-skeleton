@@ -6,7 +6,6 @@ additional_cppflags= \
 	-DTESTDATA_DIR='$(srcdir)/data' \
 	$(BOOST_CPPFLAGS)
 
-
 additional_libs= \
         $(BOOST_REGEX_LIBS) \
         $(BOOST_UNIT_TEST_FRAMEWORK_LIBS) \
@@ -21,7 +20,9 @@ additional_ldflags= \
 
 libdsv_testdir=$(top_srcdir)/libdsv/tests
 libdsv_tests=\
-	$(libdsv_testdir)/create_test.cc
+	$(libdsv_testdir)/test_detail.h \
+	$(libdsv_testdir)/create_test.cc \
+	$(libdsv_testdir)/parse_test.cc
 
 check_PROGRAMS=libdsv_test
 

@@ -129,7 +129,7 @@ namespace detail {
 
     // start parsing
     int err = dsv_parser_parse(wrapper.scanner,*this,operations);
-
+std::cerr << "dsv_parser_parse returned " << err << "\n";
     state_stack.pop_back();
 
     if(err == 2)

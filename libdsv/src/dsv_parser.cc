@@ -33,7 +33,7 @@ typedef void* yyscan_t;
 #include "dsv_rules.h"
 
 #include "dsv_parser.h"
-#include "parser_state.h"
+#include "parser_state_detail.h"
 
 #include <errno.h>
 #include <stdlib.h>
@@ -79,12 +79,17 @@ extern "C" {
 
 
 
-  int dsv_operations_create(dsv_operations_t *operations)
+  int dsv_operations_create(dsv_operations_t *_operations)
   {
     int err = 0;
 
     try {
-      operations->p = new detail::parse_operations;
+      detail::parse_operations *operations = new detail::parse_operations;
+      operations->record_callback = 0;
+      operations->record_context = 0;
+
+      _operations->p = operations;
+
     }
     catch (std::bad_alloc &) {
       err = ENOMEM;
@@ -106,6 +111,50 @@ extern "C" {
       abort();
     }
   }
+
+  record_callback_t dsv_get_record_callback(dsv_operations_t _operations)
+  {
+    if(_operations.p == 0)
+      return 0;
+
+    detail::parse_operations &operations =
+      *static_cast<detail::parse_operations*>(_operations.p);
+
+    record_callback_t result = 0;
+
+    try {
+      result = operations.record_callback;
+
+    }
+    catch(...) {
+      abort();
+    }
+
+    return result;
+  }
+
+  void * dsv_get_record_context(dsv_operations_t _operations)
+  {
+    if(_operations.p == 0)
+      return 0;
+
+    detail::parse_operations &operations =
+      *static_cast<detail::parse_operations*>(_operations.p);
+
+    void * result = 0;
+
+    try {
+      result = operations.record_context;
+
+    }
+    catch(...) {
+      abort();
+    }
+
+    return result;
+  }
+
+
 
   int dsv_set_record_callback(record_callback_t fn, void *context,
     dsv_operations_t _operations)
@@ -155,6 +204,7 @@ extern "C" {
 
     try {
       err = parser.parse_file(filename,operations);
+      std::cerr << "RETVAL " << err << "\n";
     }
     catch(std::bad_alloc &) {
       err = ENOMEM;
