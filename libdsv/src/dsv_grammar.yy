@@ -53,8 +53,8 @@
   #include "parser_state_detail.h"
 
 
-  void dsv_parser_error(yyscan_t scanner, detail::dsv_parser &parser,
-    const detail::parse_operations &operations, const char *s);
+//   void dsv_parser_error(yyscan_t scanner, detail::dsv_parser &parser,
+//     const detail::parse_operations &operations, const char *s);
 
   /**
    *  Error reporting function as required by yacc
@@ -62,7 +62,7 @@
   void dsv_parser_error(yyscan_t scanner, detail::dsv_parser &parser,
     const detail::parse_operations &operations, const char *s)
   {
-//    detail::verbose_output_formatter(detail::get_state(scanner),s);
+    std::cerr << "HERE!!!!!!!!'" << s << "'\n";
   }
 
   /**
@@ -93,6 +93,11 @@
 %parse-param {detail::dsv_parser &parser}
 %parse-param {const detail::parse_operations &operations}
 
+%token CR
+%token LF
+
+
+
 
 %% /* The grammar follows.  */
 
@@ -103,6 +108,23 @@ input:
 
 
 record:
-  '\n'
+  newline
   ;
+
+newline
+  : LF
+    {
+      if(parser.behavior() & detail::dsv_parser::newline_crlf_only) {
+        parser.push_msg("LFSeenOnCRLFStrict",dsv_log_error);
+        YYABORT;
+      }
+    }
+  | CR LF
+    {
+      if(parser.behavior() & detail::dsv_parser::newline_lf_only) {
+        parser.push_msg("CRSeenOnLFStrict",dsv_log_error);
+        YYABORT;
+      }
+    }
+
 %%

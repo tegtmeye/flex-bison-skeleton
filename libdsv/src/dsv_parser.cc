@@ -70,7 +70,6 @@ extern "C" {
   {
     try {
       delete static_cast<detail::dsv_parser*>(parser.p);
-      parser.p = 0;
     }
     catch(...) {
       abort();
@@ -105,7 +104,6 @@ extern "C" {
   {
     try {
       delete static_cast<detail::parse_operations*>(operations.p);
-      operations.p = 0;
     }
     catch(...) {
       abort();
@@ -178,19 +176,6 @@ extern "C" {
     return err;
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
   int dsv_parse(const char *filename, dsv_parser_t _parser,
                 dsv_operations_t _operations)
   {
@@ -204,13 +189,11 @@ extern "C" {
 
     try {
       err = parser.parse_file(filename,operations);
-      std::cerr << "RETVAL " << err << "\n";
     }
     catch(std::bad_alloc &) {
       err = ENOMEM;
     }
     catch(std::exception &ex) {
-//      p->last_error = ex.what();
       err = -1;
     }
     catch(...) {
@@ -219,6 +202,49 @@ extern "C" {
 
     return err;
   }
+
+  size_t dsv_parse_error(dsv_parser_t _parser, dsv_log_level log_level, char *buf, size_t len)
+  {
+    if(_parser.p == 0)
+      return 0;
+
+    detail::dsv_parser &parser = *static_cast<detail::dsv_parser*>(_parser.p);
+
+    size_t result = 0;
+
+    try {
+      // add the null terminator
+      result = 1;
+      if(buf && len)
+        *buf = 0;
+
+      size_t buf_len = (len>0?len-1:0);
+      detail::dsv_parser::const_msg_iterator cur = parser.msg_begin();
+      while(cur != parser.msg_end()) {
+        if(cur->first & log_level) {
+          std::size_t msg_size = cur->second.size();
+          std::size_t copy_size = std::min(msg_size,buf_len);
+          if(buf && buf_len) {
+            buf = std::copy(cur->second.begin(),cur->second.begin()+copy_size,buf);
+            *buf = 0;
+          }
+
+          result += msg_size;
+          buf_len -= copy_size;
+        }
+        ++cur;
+      }
+    }
+    catch(std::exception &ex) {
+      result = 0;
+    }
+    catch(...) {
+      abort();
+    }
+
+    return result;
+  }
+
 
 
 }

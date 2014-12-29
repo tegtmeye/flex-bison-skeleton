@@ -36,6 +36,8 @@
 #include <string>
 #include <sstream>
 #include <list>
+#include <vector>
+#include <utility>
 
 #include <boost/shared_ptr.hpp>
 
@@ -87,8 +89,31 @@ namespace detail {
    */
   template<typename CharT>
   class basic_dsv_parser {
+    private:
+      typedef std::vector<std::pair<dsv_log_level,std::string> > msg_stack_type;
+
     public:
+      enum _behavior_flags {
+        _behavior_default = 1L,
+        _newline_lf_only = 1L << 1,
+        _newline_crlf_only = 1L << 2
+
+      };
+
       typedef basic_parse_state<CharT> parser_state_type;
+      typedef _behavior_flags bhvrflags;
+
+      static const bhvrflags behavior_default = _behavior_default;
+      static const bhvrflags newline_lf_only = _newline_lf_only;
+      static const bhvrflags newline_crlf_only = _newline_crlf_only;
+
+      typedef typename msg_stack_type::const_iterator const_msg_iterator;
+
+      basic_dsv_parser(void);
+
+      bhvrflags behavior(void) const;
+      bhvrflags behavior(bhvrflags flags);
+
 
       int parse_file(const char *filename, const parse_operations &operations);
 
@@ -96,11 +121,91 @@ namespace detail {
         return state_stack.back()->parser_state;
       }
 
+      void push_msg(const std::string &what, dsv_log_level log_level);
+
+      const_msg_iterator msg_begin(void) const;
+      const_msg_iterator msg_end(void) const;
+
     private:
       struct state_wrapper;
+      typedef std::list<boost::shared_ptr<state_wrapper> > state_stack_type;
 
-      std::list<boost::shared_ptr<state_wrapper> > state_stack;
+      std::string localized_include(void);
+
+      bhvrflags behavior_flags;
+
+      state_stack_type state_stack;
+
+      msg_stack_type msg_vec;
   };
+
+  template<typename CharT>
+  inline basic_dsv_parser<CharT>::basic_dsv_parser(void)
+    :behavior_flags(newline_lf_only)
+  {
+  }
+
+  template<typename CharT>
+  inline typename basic_dsv_parser<CharT>::bhvrflags
+  basic_dsv_parser<CharT>::behavior(void) const
+  {
+    return behavior_flags;
+  }
+
+  template<typename CharT>
+  inline typename basic_dsv_parser<CharT>::bhvrflags
+  basic_dsv_parser<CharT>::behavior(bhvrflags flags)
+  {
+    bhvrflags tmp = behavior_flags;
+    behavior_flags = flags;
+    return tmp;
+  }
+
+  template<typename CharT>
+  void basic_dsv_parser<CharT>::push_msg(const std::string &what, dsv_log_level log_level)
+  {
+    std::stringstream msg;
+
+    msg << localized_include() << "\n";
+
+    // need to localize this
+    msg << what;
+
+    msg_vec.push_back(std::make_pair(log_level,msg.str()));
+  }
+
+  template<typename CharT>
+  typename basic_dsv_parser<CharT>::const_msg_iterator
+  basic_dsv_parser<CharT>::msg_begin(void) const
+  {
+    return msg_vec.begin();
+  }
+
+  template<typename CharT>
+  typename basic_dsv_parser<CharT>::const_msg_iterator
+  basic_dsv_parser<CharT>::msg_end(void) const
+  {
+    return msg_vec.end();
+  }
+
+
+  template<typename CharT>
+  std::string basic_dsv_parser<CharT>::localized_include(void)
+  {
+    std::stringstream out;
+
+    typename state_stack_type::const_reverse_iterator rcur = state_stack.rbegin();
+    assert(rcur != state_stack.rend());
+
+    out << "In file: '" << (*rcur)->parser_state.filename << "'";
+
+    for(++rcur; rcur != state_stack.rend(); ++rcur)
+      out << "\n\tIncluded from: '" << (*rcur)->parser_state.filename << "'";
+
+    return out.str();
+  }
+
+
 
 
   typedef basic_dsv_parser<char> dsv_parser;

@@ -67,9 +67,12 @@
 
 /* Definitions Section */
 
-
+lf  \x0A
+cr  \x0D
 
 %%
 
+{lf}      {return LF;}
+{cr}      {return CR;}
 .                   { return yytext[0]; }
 %%

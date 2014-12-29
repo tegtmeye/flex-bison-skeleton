@@ -178,6 +178,58 @@ extern "C" {
                 dsv_operations_t operations);
 
 
+  typedef enum {
+    dsv_log_none = 0,
+    dsv_log_error = 1L,
+    dsv_log_warning = 1L << 1,
+    dsv_log_info = 1L << 2,
+    dsv_log_all = (dsv_log_error|dsv_log_warning|dsv_log_info)
+  } dsv_log_level;
+
+
+  /**
+   *  \brief Filter the log messages associated with the last parse operation
+   *  according to the given \c log_level and place the first \c len characters into
+   *  the buffer pointed to by \c buf returning the total size of the filtered log
+   *  messages. Providing a 0 \c buf value is permitted.
+   *
+   *  To avoid memory ownership and potential buffer overflow issues, the recommended
+   *  pattern for use of \c dsv_parse_error is:
+   *
+   *      // Get the size of the filtered messages
+   *      size_t len = dsv_parse_error(aParser,dsv_parse_error,0,0);
+   *
+   *      // checks for a zero len and errors ommitted
+   *
+   *      // Allocate buf based on the returned size 'len'
+   *      char *buf = (char*)malloc(sizeof(char)*len);
+   *
+   *      // copy the messages to buf
+   *      dsv_parse_error(aParser,dsv_parse_error,&buf,len);
+   *
+   *  \note All messages are concatenated together
+   *
+   *  \parap[in] parser A \c dsv_parser_t object previously initialized with
+   *                    \c dsv_parser_create
+   *  \param[in] log_level A valid value of \c dsv_log_level indicating how the
+   *                        the list of all log messages should be filtered.
+   *  \param[in,out] buf A pointer to a character buffer appropriately sized. If \c buf
+   *                      is nonzero, the first \c len characters of messages are copied
+   *                      to buf including the terminating null character
+   *  \param[in] len The size of the character buffer pointed to by \c buf.
+   *  \retval 0 An error has occurred. Possible reasons could be out of memory, but
+   *            more likely is that \c parser was not initialized depending on how
+   *            \c parser was declared. That is, using:
+   *                dsv_parser_t parser = {}; // will notice the lack of initialization
+   *                dsv_parser_t parser; // will likely crash
+   *  \retval nonzero The size of the message buffer filtered to \c log_level including
+   *                  the null terminator. This value is appropriate for allocating the
+   *                  character buffer \c buf in subsequent calls.
+   */
+  size_t dsv_parse_error(dsv_parser_t parser, dsv_log_level log_level, char *buf, size_t len);
+
+
+
 #if defined(__cplusplus)
 }
 #endif
