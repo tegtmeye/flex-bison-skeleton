@@ -21,8 +21,6 @@ additional_test_ldflags=\
 	$(BOOST_SYSTEM_LDFLAGS) \
 	$(BOOST_FILESYSTEM_LDFLAGS)
 
-BUILT_SOURCES=data/empty.csv
-
 check_PROGRAMS= \
         create_test \
 	parse_test
@@ -41,22 +39,21 @@ parse_test_CPPFLAGS=$(additional_test_cppflags)
 parse_test_LDADD=$(additional_test_libs)
 parse_test_LDFLAGS=$(additional_test_ldflags)
 
-data/empty.csv: parse_test.cc
-	\rm -f $@ && mkdir -p data && touch $@
-
-
 TESTS=\
         create_test \
 	parse_test
 
 CLEANFILES=\
-	data/empty.csv \
 	create_test.log \
 	create_test.trs \
 	parse_test.log \
 	parse_test.trs \
 	test-suite.log
 
-EXTRA_DIST=
+EXTRA_DIST=\
+	data/empty.dsv \
+	data/empty_lf.dsv \
+	data/empty_crlf.dsv
+
 
 

@@ -1,0 +1,54 @@
+/**
+  \mainpage libdsv Documentation
+
+  libdsv is a library for parsing delimited-separated values (DSV)
+  files. A common example of a DSV is the ubiquitous comma-separated
+  values (.csv) file. This library aims to parse many types of files
+  separated by common delimiters in a robust manner including parsing
+  files strictly according to RFC 4180 if requested. A basic presumption
+  of the library (and according to RFC 4180) is that the files are
+  strictly ASCII. That is, each byte in the file is strictly part of the
+  ASCII character set only. If the file contains any binary, the parsing
+  will surely fail.
+
+  Another important aim of the the library is to be lightweight and not
+  make assumptions about the content of the data that it reads. This
+  allows users to easily embed the library into larger applications and
+  easily make decisions on what to do with the parsed content including
+  discard it if needed.
+
+  The library is distributed as an Autotool build system. If you are not
+  familiar with these tools, see the INSTALL file contained in the
+  download package. If you are familiar, the normal:
+
+      ./configure
+      make && make install
+
+  should work fine. To tailor any configuration options, see:
+
+      ./configure --help
+
+  To get started using the library, see the \ref GettingStarted.
+
+  For additional information on the use and design philosophy of the
+  API, see \ref APIRef.
+ */
+
+/** \page GettingStarted Getting Started
+  Even more info.
+*/
+
+
+/**
+ \page APIRef API Reference
+  \tableofcontents
+  Leading text.
+  \section sec An example section
+  This page contains the subsections \ref subsection1 and \ref subsection2.
+  For more info see page \ref page2.
+  \subsection subsection1 The first subsection
+  Text.
+  \subsection subsection2 The second subsection
+  More text.
+*/
+

@@ -76,6 +76,47 @@ extern "C" {
     }
   }
 
+  int dsv_parser_set_newline_handling(dsv_parser_t _parser, dsv_newline_behavior behavior)
+  {
+    assert(_parser.p);
+
+    if(!(behavior >= dsv_newline_permissive && behavior <= dsv_newline_crlf_strict))
+      return EINVAL;
+
+    detail::dsv_parser &parser = *static_cast<detail::dsv_parser*>(_parser.p);
+
+    int result = 0;
+
+    try {
+      parser.newline_behavior(behavior);
+    }
+    catch(...) {
+      abort();
+    }
+
+    return result;
+  }
+
+  dsv_newline_behavior dsv_parser_get_newline_handling(dsv_parser_t _parser)
+  {
+    assert(_parser.p);
+
+    detail::dsv_parser &parser = *static_cast<detail::dsv_parser*>(_parser.p);
+
+    dsv_newline_behavior result;
+
+    try {
+      result = parser.newline_behavior();
+    }
+    catch(...) {
+      abort();
+    }
+
+    return result;
+  }
+
+
+
 
 
   int dsv_operations_create(dsv_operations_t *_operations)
@@ -112,8 +153,7 @@ extern "C" {
 
   record_callback_t dsv_get_record_callback(dsv_operations_t _operations)
   {
-    if(_operations.p == 0)
-      return 0;
+    assert(_operations.p);
 
     detail::parse_operations &operations =
       *static_cast<detail::parse_operations*>(_operations.p);
@@ -133,8 +173,7 @@ extern "C" {
 
   void * dsv_get_record_context(dsv_operations_t _operations)
   {
-    if(_operations.p == 0)
-      return 0;
+    assert(_operations.p);
 
     detail::parse_operations &operations =
       *static_cast<detail::parse_operations*>(_operations.p);
@@ -154,16 +193,13 @@ extern "C" {
 
 
 
-  int dsv_set_record_callback(record_callback_t fn, void *context,
+  void dsv_set_record_callback(record_callback_t fn, void *context,
     dsv_operations_t _operations)
   {
-    if(_operations.p == 0)
-      return EINVAL;
+    assert(_operations.p);
 
     detail::parse_operations &operations =
       *static_cast<detail::parse_operations*>(_operations.p);
-
-    int err = 0;
 
     try {
       operations.record_callback = fn;
@@ -172,15 +208,12 @@ extern "C" {
     catch(...) {
       abort();
     }
-
-    return err;
   }
 
   int dsv_parse(const char *filename, dsv_parser_t _parser,
                 dsv_operations_t _operations)
   {
-    if(_parser.p == 0 || _operations.p == 0)
-      return EINVAL;
+    assert(_parser.p && _operations.p);
 
     detail::dsv_parser &parser = *static_cast<detail::dsv_parser*>(_parser.p);
     detail::parse_operations &operations = *static_cast<detail::parse_operations*>(_operations.p);
@@ -190,11 +223,11 @@ extern "C" {
     try {
       err = parser.parse_file(filename,operations);
     }
+    catch(detail::file_error &ex) {
+      err = ex.error_code();
+    }
     catch(std::bad_alloc &) {
       err = ENOMEM;
-    }
-    catch(std::exception &ex) {
-      err = -1;
     }
     catch(...) {
       abort();
@@ -205,8 +238,7 @@ extern "C" {
 
   size_t dsv_parse_error(dsv_parser_t _parser, dsv_log_level log_level, char *buf, size_t len)
   {
-    if(_parser.p == 0)
-      return 0;
+    assert(_parser.p);
 
     detail::dsv_parser &parser = *static_cast<detail::dsv_parser*>(_parser.p);
 
@@ -235,7 +267,7 @@ extern "C" {
         ++cur;
       }
     }
-    catch(std::exception &ex) {
+    catch(std::bad_alloc &) {
       result = 0;
     }
     catch(...) {

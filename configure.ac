@@ -66,6 +66,7 @@ AC_CONFIG_FILES( \
  libdsv/Makefile \
  libdsv/src/Makefile \
  libdsv/tests/Makefile \
- tests/Makefile)
+ tests/Makefile \
+ docs/Makefile)
 
 AC_OUTPUT

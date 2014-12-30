@@ -72,17 +72,6 @@ boost::shared_ptr<dsv_operations_t> make_operations(void)
 
 BOOST_AUTO_TEST_SUITE( parse_suite )
 
-/** \test Check to see if error fn recognizes uninitialized parsers
- */
-BOOST_AUTO_TEST_CASE( noninitialzed_parser_error_fn_check )
-{
-  dsv_parser_t parser = {};
-
-  size_t msg_len = dsv_parse_error(parser,dsv_log_all,0,0);
-
-  BOOST_REQUIRE_MESSAGE(msg_len == 0,
-    "dsv_parse_error recognizes an uninitialized parser object");
-}
 
 /** \test Check to see if error fn returns empty string on no-parse condition
  */
@@ -170,9 +159,7 @@ BOOST_AUTO_TEST_CASE( record_getting_and_setting )
 
   detail::record_context record_context; // may throw
 
-  err = dsv_set_record_callback(detail::record_callback,&record_context,operations);
-  BOOST_REQUIRE_MESSAGE(err == 0,
-    "dsv_set_record_callback succeeds");
+  dsv_set_record_callback(detail::record_callback,&record_context,operations);
 
   fn = dsv_get_record_callback(operations);
   BOOST_REQUIRE_MESSAGE(fn == detail::record_callback,
@@ -198,7 +185,67 @@ BOOST_AUTO_TEST_CASE( parser_create )
   dsv_parser_destroy(parser);
 }
 
-/** \test Create and destroy parser object
+/** \test Test newline getting and setting
+ */
+BOOST_AUTO_TEST_CASE( parser_newline_getting_and_setting )
+{
+  dsv_parser_t parser = {};
+
+  assert(dsv_parser_create(&parser) == 0);
+
+  dsv_newline_behavior behavior = dsv_parser_get_newline_handling(parser);
+  BOOST_REQUIRE_MESSAGE(behavior==dsv_newline_permissive,
+    "dsv_parser_get_newline_handling returned a value other than the default newline "
+    "behavior (" << behavior << " != " << dsv_newline_permissive << ")");
+
+  int err = dsv_parser_set_newline_handling(parser,(dsv_newline_behavior)999);
+  BOOST_REQUIRE_MESSAGE(err!=0,
+    "dsv_parser_set_newline_handling accepted a invalid value of dsv_newline_behavior");
+
+  behavior = dsv_parser_get_newline_handling(parser);
+  BOOST_REQUIRE_MESSAGE(behavior==dsv_newline_permissive,
+    "dsv_parser_get_newline_handling returned a value other than the default newline "
+    "behavior after attempting a invalid value of dsv_newline_behavior ("
+    << behavior << " != " << dsv_newline_permissive << ")");
+
+  err = dsv_parser_set_newline_handling(parser,dsv_newline_lf_strict);
+  BOOST_REQUIRE_MESSAGE(err==0,
+    "dsv_parser_set_newline_handling failed with error value " << err);
+
+  behavior = dsv_parser_get_newline_handling(parser);
+  BOOST_REQUIRE_MESSAGE(behavior==dsv_newline_lf_strict,
+    "dsv_parser_get_newline_handling returned a value other than the set newline "
+    "behavior (" << behavior << " != " << dsv_newline_lf_strict << ")");
+
+  dsv_parser_destroy(parser);
+}
+
+
+/** \test Attempt to parse a nonexistent file
+ */
+BOOST_AUTO_TEST_CASE( parse_nonexistent_file )
+{
+  dsv_parser_t parser;
+  assert(dsv_parser_create(&parser) == 0);
+  boost::shared_ptr<dsv_parser_t> parser_sentry(&parser,detail::parser_destroy);
+
+  dsv_operations_t operations;
+  assert(dsv_operations_create(&operations) == 0);
+  boost::shared_ptr<dsv_operations_t> operations_sentry(&operations,detail::operations_destroy);
+
+  detail::record_context context;
+  dsv_set_record_callback(detail::record_callback,&context,operations);
+
+  fs::path filename(detail::testdatadir/"nonexistant_file.dsv");
+
+  int result = dsv_parse(filename.string().c_str(),parser,operations);
+
+  BOOST_REQUIRE_MESSAGE(result == ENOENT,
+    "dsv_parse attempted to open a nonexistent file and did not return ENOENT");
+}
+
+
+/** \test Parse a completely empty file
  */
 BOOST_AUTO_TEST_CASE( parse_empty_file )
 {
@@ -213,7 +260,90 @@ BOOST_AUTO_TEST_CASE( parse_empty_file )
   detail::record_context context;
   dsv_set_record_callback(detail::record_callback,&context,operations);
 
-  fs::path filename(detail::testdatadir/"empty.csv");
+  fs::path filename(detail::testdatadir/"empty.dsv");
+
+  BOOST_TEST_MESSAGE("Testing file " << filename.string());
+
+  int result = dsv_parse(filename.string().c_str(),parser,operations);
+
+  BOOST_REQUIRE_MESSAGE(result == 0,
+    "dsv_parse failed on '" << filename << "' with message \""
+      << detail::msg_log(parser,dsv_log_all) << "\"");
+}
+
+/** \test Parse a file with no records but has a single LF using permissive newline
+ *  handling
+ */
+BOOST_AUTO_TEST_CASE( permissively_parse_recordless_file_w_LF )
+{
+  dsv_parser_t parser;
+  assert(dsv_parser_create(&parser) == 0);
+  boost::shared_ptr<dsv_parser_t> parser_sentry(&parser,detail::parser_destroy);
+
+  assert(dsv_parser_set_newline_handling(parser,dsv_newline_permissive) == 0);
+
+  dsv_operations_t operations;
+  assert(dsv_operations_create(&operations) == 0);
+  boost::shared_ptr<dsv_operations_t> operations_sentry(&operations,detail::operations_destroy);
+
+  detail::record_context context;
+  dsv_set_record_callback(detail::record_callback,&context,operations);
+
+  fs::path filename(detail::testdatadir/"empty_lf.dsv");
+
+  int result = dsv_parse(filename.string().c_str(),parser,operations);
+
+  BOOST_REQUIRE_MESSAGE(result == 0,
+    "dsv_parse failed on '" << filename << "' with message \""
+      << detail::msg_log(parser,dsv_log_all) << "\"");
+}
+
+/** \test Parse a file with no records but has a single CRLF using permissive newline
+ *  handling
+ */
+BOOST_AUTO_TEST_CASE( permissively_parse_recordless_file_w_CRLF )
+{
+  dsv_parser_t parser;
+  assert(dsv_parser_create(&parser) == 0);
+  boost::shared_ptr<dsv_parser_t> parser_sentry(&parser,detail::parser_destroy);
+
+  assert(dsv_parser_set_newline_handling(parser,dsv_newline_permissive) == 0);
+
+  dsv_operations_t operations;
+  assert(dsv_operations_create(&operations) == 0);
+  boost::shared_ptr<dsv_operations_t> operations_sentry(&operations,detail::operations_destroy);
+
+  detail::record_context context;
+  dsv_set_record_callback(detail::record_callback,&context,operations);
+
+  fs::path filename(detail::testdatadir/"empty_crlf.dsv");
+
+  int result = dsv_parse(filename.string().c_str(),parser,operations);
+
+  BOOST_REQUIRE_MESSAGE(result == 0,
+    "dsv_parse failed on '" << filename << "' with message \""
+      << detail::msg_log(parser,dsv_log_all) << "\"");
+}
+
+/**
+ *  \test Parse a file with no records using strict LF newline handling
+ */
+BOOST_AUTO_TEST_CASE( strictly_parse_recordless_LF_handling )
+{
+  dsv_parser_t parser;
+  assert(dsv_parser_create(&parser) == 0);
+  boost::shared_ptr<dsv_parser_t> parser_sentry(&parser,detail::parser_destroy);
+
+  assert(dsv_parser_set_newline_handling(parser,dsv_newline_lf_strict) == 0);
+
+  dsv_operations_t operations;
+  assert(dsv_operations_create(&operations) == 0);
+  boost::shared_ptr<dsv_operations_t> operations_sentry(&operations,detail::operations_destroy);
+
+  detail::record_context context;
+  dsv_set_record_callback(detail::record_callback,&context,operations);
+
+  fs::path filename(detail::testdatadir/"empty_lf.dsv");
 
   int result = dsv_parse(filename.string().c_str(),parser,operations);
 
@@ -221,7 +351,51 @@ BOOST_AUTO_TEST_CASE( parse_empty_file )
     "dsv_parse failed on '" << filename << "' with message \""
       << detail::msg_log(parser,dsv_log_all) << "\"");
 
+  filename = fs::path(detail::testdatadir/"empty_crlf.dsv");
+
+  result = dsv_parse(filename.string().c_str(),parser,operations);
+
+  BOOST_REQUIRE_MESSAGE(result == -1,
+    "dsv_parse succeeded or failed for incorrect reasons on '" << filename
+      << "' with message \"" << detail::msg_log(parser,dsv_log_all) << "\"");
 }
+
+/**
+ *  \test Parse a file with no records using strict CRLF newline handling
+ */
+BOOST_AUTO_TEST_CASE( strictly_parse_recordless_CRLF_handling )
+{
+  dsv_parser_t parser;
+  assert(dsv_parser_create(&parser) == 0);
+  boost::shared_ptr<dsv_parser_t> parser_sentry(&parser,detail::parser_destroy);
+
+  assert(dsv_parser_set_newline_handling(parser,dsv_newline_crlf_strict) == 0);
+
+  dsv_operations_t operations;
+  assert(dsv_operations_create(&operations) == 0);
+  boost::shared_ptr<dsv_operations_t> operations_sentry(&operations,detail::operations_destroy);
+
+  detail::record_context context;
+  dsv_set_record_callback(detail::record_callback,&context,operations);
+
+  fs::path filename(detail::testdatadir/"empty_crlf.dsv");
+
+  int result = dsv_parse(filename.string().c_str(),parser,operations);
+
+  BOOST_REQUIRE_MESSAGE(result == 0,
+    "dsv_parse failed on '" << filename << "' with message \""
+      << detail::msg_log(parser,dsv_log_all) << "\"");
+
+  filename = fs::path(detail::testdatadir/"empty_lf.dsv");
+
+  result = dsv_parse(filename.string().c_str(),parser,operations);
+
+  BOOST_REQUIRE_MESSAGE(result == -1,
+    "dsv_parse succeeded or failed for incorrect reasons on '" << filename
+      << "' with message \"" << detail::msg_log(parser,dsv_log_all) << "\"");
+}
+
+
 
 
 

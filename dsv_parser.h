@@ -45,7 +45,7 @@ extern "C" {
    */
 
   /**
-   *  \brief A structure containing a dsv parser
+   *  \brief An opaque handle for a dsv parser object
    */
   typedef struct {
     void *p;
@@ -70,10 +70,43 @@ extern "C" {
    */
   void dsv_parser_destroy(dsv_parser_t parser);
 
+  /**
+   *  \brief Behavior flag for handling newlines
+   */
+  typedef enum {
+    dsv_newline_permissive = 0, /*!< Accept all supported newlines [DEFAULT] */
+    dsv_newline_lf_strict = 1, /*!< Only accept lines terminated by the Line Feed (LF). [*nix-based systems including Mac OSX] */
+    dsv_newline_crlf_strict = 2, /*!< Only accept lines terminated by both the Carriage Return (CRL) and the the Line Feed (LF). [MS Windows] */
+    dsv_newline_RFC4180_strict = 2 /*!< RFC 4180 strict. Equivalent to dsv_newline_crlf_strict */
+  } dsv_newline_behavior;
 
 
   /**
-   *  A structure containing the dsv callbacks
+   *  \brief Set the newline behavior for future parsing with \c parser
+   *
+   *  \param parser A properly initialized dsv_parser_t object
+   *  \param behavior One of the possible \c dsv_newline_behavior enumerations
+   *
+   *  \retval 0 Success
+   *  \retval EINVAL \c behavior has a value not part of dsv_newline_behavior
+   */
+  int dsv_parser_set_newline_handling(dsv_parser_t parser, dsv_newline_behavior behavior);
+
+  /**
+   *  \brief Get the current newline behavior for future parsing with \c parser
+   *
+   *  \param parser A properly initialized dsv_parser_t object
+   *
+   *  \retval behavior One of the possible \c dsv_newline_behavior enumerations
+   */
+  dsv_newline_behavior dsv_parser_get_newline_handling(dsv_parser_t parser);
+
+
+
+
+
+  /**
+   *  An opaque handle for a dsv operations object
    */
   typedef struct {
     void *p;
@@ -117,7 +150,8 @@ extern "C" {
    *  are strictly an ASCII format, no binary shall appear in the field.
    *  \endparblock
    *  \param[in] size The size of the field array
-   *  \param[in] context A user-defined value associted with this callback set in ???
+   *  \param[in] context A user-defined value associted with this callback set in
+   *                      \c dsv_set_record_callback
    *
    *  \retval nonzero if procssing should continue or 0 if processing should cease
    *          and control should return from the parse function.
@@ -127,7 +161,7 @@ extern "C" {
   /**
    *  \brief Obtain the callback currently set for records
    *
-   *  \retval 0 No callback is registered or \c operations has not been initialized
+   *  \retval 0 No callback is registered
    *  \retval nonzero The currently registered callback
    */
   record_callback_t dsv_get_record_callback(dsv_operations_t operations);
@@ -135,7 +169,7 @@ extern "C" {
   /**
    *  \brief Obtain the user-defined context currently set for records
    *
-   *  \retval 0 No context is registered or \c operations has not been initialized
+   *  \retval 0 No context is registered
    *  \retval nonzero The currently registered context
    */
   void * dsv_get_record_context(dsv_operations_t operations);
@@ -145,11 +179,8 @@ extern "C" {
    *  with \c operation.
    *
    *  \note The value of \c context is passed in as the \c context parameter in \c fn
-   *
-   *  \retval 0 on success
-   *  \retval EINVAL \c operations has not been initialized
    */
-  int dsv_set_record_callback(record_callback_t fn, void *context, dsv_operations_t operations);
+  void dsv_set_record_callback(record_callback_t fn, void *context, dsv_operations_t operations);
 
   /**
    *  \brief Parse the file \c filename with \c parser, using the operations
@@ -170,7 +201,6 @@ extern "C" {
    *
    *  \retval 0 success
    *  \retval ENOMEM out of memory
-   *  \retval EINVAL \c parser or \c operations have not been initialized
    *  \retval >0 Any error code returned by fopen
    *  \retval <0 failure, see dsv_parse_error
    */
@@ -178,12 +208,15 @@ extern "C" {
                 dsv_operations_t operations);
 
 
+  /**
+   *  \brief Logging levels for filtering parser messages
+   */
   typedef enum {
-    dsv_log_none = 0,
-    dsv_log_error = 1L,
-    dsv_log_warning = 1L << 1,
-    dsv_log_info = 1L << 2,
-    dsv_log_all = (dsv_log_error|dsv_log_warning|dsv_log_info)
+    dsv_log_none = 0, /*!< Filter all messages */
+    dsv_log_error = 1L, /*!< Filter all messages except error messages */
+    dsv_log_warning = 1L << 1, /*!< Filter all messages except warning messages */
+    dsv_log_info = 1L << 2, /*!< Filter all messages except info messages */
+    dsv_log_all = (dsv_log_error|dsv_log_warning|dsv_log_info) /*!< Do not filter messages */
   } dsv_log_level;
 
 
@@ -209,7 +242,7 @@ extern "C" {
    *
    *  \note All messages are concatenated together
    *
-   *  \parap[in] parser A \c dsv_parser_t object previously initialized with
+   *  \param[in] parser A \c dsv_parser_t object previously initialized with
    *                    \c dsv_parser_create
    *  \param[in] log_level A valid value of \c dsv_log_level indicating how the
    *                        the list of all log messages should be filtered.
@@ -217,11 +250,7 @@ extern "C" {
    *                      is nonzero, the first \c len characters of messages are copied
    *                      to buf including the terminating null character
    *  \param[in] len The size of the character buffer pointed to by \c buf.
-   *  \retval 0 An error has occurred. Possible reasons could be out of memory, but
-   *            more likely is that \c parser was not initialized depending on how
-   *            \c parser was declared. That is, using:
-   *                dsv_parser_t parser = {}; // will notice the lack of initialization
-   *                dsv_parser_t parser; // will likely crash
+   *  \retval 0 An error has occurred. Possible reasons could be out of memory.
    *  \retval nonzero The size of the message buffer filtered to \c log_level including
    *                  the null terminator. This value is appropriate for allocating the
    *                  character buffer \c buf in subsequent calls.

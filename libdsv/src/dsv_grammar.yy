@@ -77,6 +77,7 @@
 //    }
 
   }
+
 }
 
 %pure-parser
@@ -114,14 +115,14 @@ record:
 newline
   : LF
     {
-      if(parser.behavior() & detail::dsv_parser::newline_crlf_only) {
+      if(parser.newline_behavior() == dsv_newline_crlf_strict) {
         parser.push_msg("LFSeenOnCRLFStrict",dsv_log_error);
         YYABORT;
       }
     }
   | CR LF
     {
-      if(parser.behavior() & detail::dsv_parser::newline_lf_only) {
+      if(parser.newline_behavior() == dsv_newline_lf_strict) {
         parser.push_msg("CRSeenOnLFStrict",dsv_log_error);
         YYABORT;
       }

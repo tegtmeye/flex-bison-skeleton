@@ -13,6 +13,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libdsv.pc
 
 SUBDIRS= \
+	docs \
 	libdsv \
 	$(MAYBE_TEST)
 

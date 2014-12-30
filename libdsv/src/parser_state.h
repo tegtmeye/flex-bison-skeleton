@@ -93,26 +93,14 @@ namespace detail {
       typedef std::vector<std::pair<dsv_log_level,std::string> > msg_stack_type;
 
     public:
-      enum _behavior_flags {
-        _behavior_default = 1L,
-        _newline_lf_only = 1L << 1,
-        _newline_crlf_only = 1L << 2
-
-      };
-
       typedef basic_parse_state<CharT> parser_state_type;
-      typedef _behavior_flags bhvrflags;
-
-      static const bhvrflags behavior_default = _behavior_default;
-      static const bhvrflags newline_lf_only = _newline_lf_only;
-      static const bhvrflags newline_crlf_only = _newline_crlf_only;
 
       typedef typename msg_stack_type::const_iterator const_msg_iterator;
 
       basic_dsv_parser(void);
 
-      bhvrflags behavior(void) const;
-      bhvrflags behavior(bhvrflags flags);
+      dsv_newline_behavior newline_behavior(void) const;
+      dsv_newline_behavior newline_behavior(dsv_newline_behavior behavior);
 
 
       int parse_file(const char *filename, const parse_operations &operations);
@@ -132,7 +120,7 @@ namespace detail {
 
       std::string localized_include(void);
 
-      bhvrflags behavior_flags;
+      dsv_newline_behavior newline_flag;
 
       state_stack_type state_stack;
 
@@ -141,23 +129,22 @@ namespace detail {
 
   template<typename CharT>
   inline basic_dsv_parser<CharT>::basic_dsv_parser(void)
-    :behavior_flags(newline_lf_only)
+    :newline_flag(dsv_newline_permissive)
   {
   }
 
   template<typename CharT>
-  inline typename basic_dsv_parser<CharT>::bhvrflags
-  basic_dsv_parser<CharT>::behavior(void) const
+  inline dsv_newline_behavior basic_dsv_parser<CharT>::newline_behavior(void) const
   {
-    return behavior_flags;
+    return newline_flag;
   }
 
   template<typename CharT>
-  inline typename basic_dsv_parser<CharT>::bhvrflags
-  basic_dsv_parser<CharT>::behavior(bhvrflags flags)
+  inline dsv_newline_behavior
+  basic_dsv_parser<CharT>::newline_behavior(dsv_newline_behavior behavior)
   {
-    bhvrflags tmp = behavior_flags;
-    behavior_flags = flags;
+    dsv_newline_behavior tmp = newline_flag;
+    newline_flag = behavior;
     return tmp;
   }
 
@@ -205,10 +192,7 @@ namespace detail {
     return out.str();
   }
 
-
-
-
-  typedef basic_dsv_parser<char> dsv_parser;
+  typedef detail::basic_dsv_parser<char> dsv_parser;
 
 }
 

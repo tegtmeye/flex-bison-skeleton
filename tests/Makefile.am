@@ -19,8 +19,6 @@ additional_ldflags= \
         $(BOOST_SYSTEM_LDFLAGS)
 
 
-BUILT_SOURCES=data/empty.csv
-
 libdsv_testdir=$(top_srcdir)/libdsv/tests
 libdsv_tests=\
 	$(libdsv_testdir)/test_detail.h \
@@ -28,9 +26,6 @@ libdsv_tests=\
 	$(libdsv_testdir)/parse_test.cc
 
 check_PROGRAMS=libdsv_test
-
-$(libdsv_testdir)/data/empty.csv: $(libdsv_testdir)/parse_test.cc
-	\rm -f $@ && mkdir -p data && touch $@
 
 libdsv_test_SOURCES=\
 	master_suite.cc \
